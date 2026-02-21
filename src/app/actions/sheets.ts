@@ -21,7 +21,7 @@ function parseSheetDate(dateStr: string): Date | null {
   
   const cleanStr = dateStr.trim();
   const formats = [
-    'EEEE, MMMM d, yyyy',
+    'EEEE, MMMM d, yyyy', // Friday, February 20, 2026
     'MMMM d, yyyy',
     'd-MMM-yy',
     'd/M/yyyy',
@@ -33,6 +33,7 @@ function parseSheetDate(dateStr: string): Date | null {
     if (isValid(parsed)) return startOfDay(parsed);
   }
 
+  // Fallback to native date parsing if format doesn't match predefined list
   const native = new Date(cleanStr);
   if (isValid(native) && !isNaN(native.getTime())) return startOfDay(native);
 
@@ -44,11 +45,15 @@ export async function getDashboardData() {
   const nowBD = getBangladeshNow();
   
   const bdTodayStart = startOfDay(nowBD);
-  const cutoffTime = setMinutes(setHours(bdTodayStart, 13), 0);
+  const cutoffTime = setMinutes(setHours(bdTodayStart, 13), 0); // 1:00 PM BD Time
   const isAfterCutoff = isAfter(nowBD, cutoffTime);
 
-  // If before 1 PM: Live is today, Archive is yesterday.
-  // If after 1 PM: Live is tomorrow, Archive is today.
+  /**
+   * Logical Requirements:
+   * Today is Feb 21.
+   * If before 1 PM: Live = Feb 21, Archive = Feb 20.
+   * If after 1 PM: Live = Feb 22, Archive = Feb 21.
+   */
   const liveTargetDate = isAfterCutoff ? addDays(bdTodayStart, 1) : bdTodayStart;
   const archiveTargetDate = isAfterCutoff ? bdTodayStart : subDays(bdTodayStart, 1);
 

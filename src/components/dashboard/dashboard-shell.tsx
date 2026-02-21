@@ -22,7 +22,7 @@ export function DashboardShell() {
       const result = await getDashboardData();
       setData(result);
     } catch (e) {
-      console.error("Dashboard error:", e);
+      console.error("Dashboard sync error:", e);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -62,7 +62,7 @@ export function DashboardShell() {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {rows.map((row, i) => (
-          <Card key={i} className="group hover:shadow-xl transition-all duration-300 border-t-4 border-t-primary overflow-hidden bg-white/95">
+          <Card key={i} className="group hover:shadow-xl transition-all duration-300 border-t-4 border-t-primary overflow-hidden bg-card">
             <CardHeader className="pb-3">
               <div className="flex justify-between items-start mb-2">
                 <Badge variant="outline" className="text-[10px] font-bold uppercase tracking-widest bg-primary/5 text-primary border-primary/10">
@@ -153,11 +153,11 @@ export function DashboardShell() {
         <TabsContent value="live" className="space-y-6">
           <div className="space-y-1">
             <h3 className="text-xl font-semibold flex items-center gap-2">
-              {data?.isNextDayPreview ? "Next Session Schedule" : "Active Session Requirements"}
+              {data?.isNextDayPreview ? "Next Day Schedule" : "Current Session Requirements"}
               {data?.isNextDayPreview && <Badge variant="secondary" className="bg-accent/10 text-accent border-accent/20">Preview Mode</Badge>}
             </h3>
             <p className="text-sm text-muted-foreground">
-              Current focus: {data?.live.length > 0 ? data.live[0].date : 'Today'}
+              Status: {data?.isNextDayPreview ? "Displaying tomorrow's requirements" : "Displaying today's active requirements"}
             </p>
           </div>
           {renderCardGrid(data?.live || [], "No requirements found for the active session.")}
@@ -166,11 +166,11 @@ export function DashboardShell() {
         <TabsContent value="archive" className="space-y-6">
           <div className="space-y-1">
             <h3 className="text-xl font-semibold flex items-center gap-2">
-              Recent Archive
-              <Badge variant="outline" className="text-muted-foreground">1 Day View</Badge>
+              Previous Requirements Archive
+              <Badge variant="outline" className="text-muted-foreground">Historical View</Badge>
             </h3>
             <p className="text-sm text-muted-foreground">
-              Previous session records. Data moves here daily at 1 PM.
+              Displaying the most recently completed session's data.
             </p>
           </div>
           {renderCardGrid(data?.archive || [], "No archived data found for the previous session.")}
