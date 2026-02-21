@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
@@ -17,7 +16,6 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 
 /**
  * Extracted StatusIcon to prevent recreation on every render
- * which was causing popovers to "vanish" due to remounting.
  */
 function StatusIcon({ ready, label, value }: { ready: boolean, label: string, value: string }) {
   const [open, setOpen] = useState(false);
@@ -51,6 +49,7 @@ function StatusIcon({ ready, label, value }: { ready: boolean, label: string, va
 export function DashboardShell() {
   const [data, setData] = useState<{ 
     live: SheetRow[]; 
+    today: SheetRow[];
     archive: SheetRow[]; 
     isNextDayPreview: boolean; 
     currentTime: string;
@@ -119,10 +118,13 @@ export function DashboardShell() {
     }
   }, []);
 
+  /**
+   * Live Now logic: Only looks at data.today (Actual Current Day)
+   */
   const liveNowRows = useMemo(() => {
-    if (!data?.live || !liveTime) return [];
+    if (!data?.today || !liveTime) return [];
     
-    return data.live.filter(row => {
+    return data.today.filter(row => {
       try {
         const timePart = row.time.split('-')[0].trim();
         const startTime = parse(timePart, 'h:mm a', liveTime);
@@ -132,7 +134,7 @@ export function DashboardShell() {
         return false;
       }
     });
-  }, [data?.live, liveTime]);
+  }, [data?.today, liveTime]);
 
   const renderCard = (row: SheetRow, i: number, tabType: 'live' | 'archive', isLiveNow: boolean = false) => {
     const { allReady } = getRowStatus(row);
@@ -404,7 +406,7 @@ export function DashboardShell() {
                   <div className="h-3 w-3 rounded-full bg-emerald-500 animate-ping" />
                 </h3>
                 <p className="text-sm text-muted-foreground">
-                  Classes currently in progress (2-hour active window).
+                  Classes currently in progress on the actual current calendar day.
                 </p>
               </div>
             </div>
