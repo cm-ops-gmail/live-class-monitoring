@@ -23,6 +23,20 @@ export function DashboardShell() {
   } | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [liveTime, setLiveTime] = useState<Date | null>(null);
+
+  // Live Bangladesh Clock (UTC+6)
+  useEffect(() => {
+    const updateTime = () => {
+      const now = new Date();
+      const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+      const bdTime = new Date(utc + (3600000 * 6));
+      setLiveTime(bdTime);
+    };
+    updateTime();
+    const timer = setInterval(updateTime, 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   const loadData = async () => {
     setRefreshing(true);
@@ -63,7 +77,6 @@ export function DashboardShell() {
     const element = document.getElementById(elementId);
     if (element) {
       element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      // Temporary highlight effect
       element.classList.add('bg-primary/20');
       setTimeout(() => {
         element.classList.remove('bg-primary/20');
@@ -105,7 +118,6 @@ export function DashboardShell() {
 
     return (
       <div className="space-y-16">
-        {/* Card Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {rows.map((row, i) => {
             const { allReady } = getRowStatus(row);
@@ -185,7 +197,6 @@ export function DashboardShell() {
           })}
         </div>
 
-        {/* Detailed Status Table */}
         <div className="space-y-6">
           <div className="flex items-center gap-4 px-2">
             <div className="h-px flex-1 bg-white/5" />
@@ -245,19 +256,20 @@ export function DashboardShell() {
         <div className="relative z-10 space-y-4">
           <div className="flex items-center gap-3">
             <div className="h-2 w-2 rounded-full bg-accent animate-pulse shadow-[0_0_10px_rgba(255,165,0,0.8)]" />
-            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-accent">Central Command</span>
+            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-accent">Real Time MONITORING</span>
           </div>
-          <h2 className="text-4xl md:text-5xl font-black tracking-tighter text-white">
-            Sync <span className="text-primary italic">Intelligence</span>
+          <h2 className="text-4xl md:text-5xl font-black tracking-tighter text-white leading-tight">
+            Content Operations <br />
+            <span className="text-primary italic">Live Class Monitoring Dashboard</span>
           </h2>
           <div className="flex flex-wrap items-center gap-4">
             <Badge variant="secondary" className="bg-white/5 hover:bg-white/10 text-muted-foreground border-white/10 px-4 py-1.5 rounded-full font-bold">
               <Calendar className="h-4 w-4 mr-2 text-primary" />
-              {data ? format(new Date(data.currentTime), 'MMM do, yyyy') : '...'}
+              {liveTime ? format(liveTime, 'MMM do, yyyy') : '...'}
             </Badge>
             <Badge variant="secondary" className="bg-white/5 hover:bg-white/10 text-muted-foreground border-white/10 px-4 py-1.5 rounded-full font-bold">
               <Clock className="h-4 w-4 mr-2 text-primary" />
-              BD Time: {data ? format(new Date(data.currentTime), 'HH:mm') : '...'}
+              BD Time: {liveTime ? format(liveTime, 'HH:mm:ss') : '...'}
             </Badge>
           </div>
         </div>
@@ -266,10 +278,12 @@ export function DashboardShell() {
           <Button 
             onClick={loadData} 
             disabled={refreshing}
-            className="w-full lg:w-auto bg-primary hover:bg-primary/80 text-primary-foreground font-black uppercase tracking-widest px-8 py-6 h-auto rounded-2xl transition-all shadow-xl shadow-primary/10"
+            variant="default"
+            size="sm"
+            className="w-full lg:w-auto bg-primary hover:bg-primary/80 text-primary-foreground font-black uppercase tracking-widest px-6 h-10 rounded-xl transition-all shadow-lg shadow-primary/10"
           >
-            <RefreshCw className={cn("mr-3 h-5 w-5", refreshing && "animate-spin")} />
-            {refreshing ? 'Syncing...' : 'Refresh Matrix'}
+            <RefreshCw className={cn("mr-2 h-4 w-4", refreshing && "animate-spin")} />
+            {refreshing ? 'Syncing...' : 'Refresh Data'}
           </Button>
         </div>
       </div>
