@@ -107,40 +107,40 @@ export function DashboardShell() {
                 <div className="absolute -right-20 -top-20 h-40 w-40 bg-primary/5 blur-[80px] group-hover:bg-primary/10 transition-all duration-700" />
                 
                 <CardHeader className="pb-4 relative z-10">
-                  <div className="flex justify-between items-start mb-4">
-                    <div className="flex flex-col gap-1">
+                  <div className="flex justify-between items-start mb-6">
+                    <div className="flex flex-col gap-1.5">
                       <Badge variant="outline" className="w-fit text-[10px] font-black uppercase tracking-[0.2em] bg-primary/10 text-primary border-primary/20 px-3 py-1">
                         {row.productType || 'Requirement'}
                       </Badge>
-                      <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">
+                      <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
                         {row.course || 'Global Course'}
                       </span>
                     </div>
-                    <StatusBadge timeStr={row.time} />
+
+                    <div className="flex flex-col items-end gap-2">
+                      {allReady ? (
+                        <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 font-black text-xs uppercase tracking-tight py-1.5 px-3 flex items-center gap-2">
+                          <CheckCircle2 className="h-4 w-4" />
+                          Ready to go live
+                        </Badge>
+                      ) : (
+                        <Badge className="bg-red-500/20 text-red-500 border-red-500/30 font-black text-xs uppercase tracking-tight py-1.5 px-3 animate-attention flex items-center gap-2">
+                          <AlertCircle className="h-4 w-4" />
+                          Need Attention
+                        </Badge>
+                      )}
+                      <StatusBadge timeStr={row.time} />
+                    </div>
                   </div>
 
                   <div className="flex flex-col gap-2">
-                    <CardTitle className="text-xl font-black text-white leading-tight tracking-tight group-hover:text-primary transition-colors duration-300">
+                    <CardTitle className="text-2xl font-black text-white leading-tight tracking-tight group-hover:text-primary transition-colors duration-300">
                       {row.subject || 'Subject Pending'}
                     </CardTitle>
-                    <div className="flex items-center justify-between">
-                      <CardDescription className="text-sm font-bold text-accent flex items-center gap-2">
-                        <Sparkles className="h-3.5 w-3.5" />
-                        {row.topic || 'General Topic'}
-                      </CardDescription>
-                      
-                      {allReady ? (
-                        <div className="flex items-center gap-1.5 text-emerald-400 font-black text-[10px] uppercase tracking-tighter">
-                          <CheckCircle2 className="h-3.5 w-3.5" />
-                          Ready to go live
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-1.5 text-red-500 font-black text-[10px] uppercase tracking-tighter animate-pulse">
-                          <AlertCircle className="h-3.5 w-3.5" />
-                          Need Attention
-                        </div>
-                      )}
-                    </div>
+                    <CardDescription className="text-base font-bold text-accent flex items-center gap-2">
+                      <Sparkles className="h-4 w-4" />
+                      {row.topic || 'General Topic'}
+                    </CardDescription>
                   </div>
                 </CardHeader>
 
