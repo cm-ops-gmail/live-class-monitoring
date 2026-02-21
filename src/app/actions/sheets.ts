@@ -1,7 +1,7 @@
 'use server';
 
 import { fetchSheetData, SheetRow } from '@/lib/google-sheets';
-import { isAfter, isBefore, isSameDay, addDays, subDays, setHours, setMinutes, parse, isValid, startOfDay } from 'date-fns';
+import { isAfter, isBefore, isSameDay, addDays, startOfDay, parse, isValid } from 'date-fns';
 
 /**
  * Get current time in Bangladesh (UTC+6)
@@ -33,7 +33,6 @@ function parseSheetDate(dateStr: string): Date | null {
     if (isValid(parsed)) return startOfDay(parsed);
   }
 
-  // Fallback to native date parsing if format doesn't match predefined list
   const native = new Date(cleanStr);
   if (isValid(native) && !isNaN(native.getTime())) return startOfDay(native);
 
@@ -45,38 +44,53 @@ export async function getDashboardData() {
   const nowBD = getBangladeshNow();
   
   const bdTodayStart = startOfDay(nowBD);
-  const cutoffTime = setMinutes(setHours(bdTodayStart, 13), 0); // 1:00 PM BD Time
+  const cutoffTime = new Date(bdTodayStart);
+  cutoffTime.setHours(13, 0, 0, 0); // 1:00 PM BD Time
+
   const isAfterCutoff = isAfter(nowBD, cutoffTime);
 
   /**
    * Logical Requirements:
-   * Today is Feb 21.
-   * If before 1 PM: Live = Feb 21, Archive = Feb 20.
-   * If after 1 PM: Live = Feb 22, Archive = Feb 21.
+   * If before 1 PM: Live = Today.
+   * If after 1 PM: Live = Tomorrow.
    */
   const liveTargetDate = isAfterCutoff ? addDays(bdTodayStart, 1) : bdTodayStart;
-  const archiveTargetDate = isAfterCutoff ? bdTodayStart : subDays(bdTodayStart, 1);
 
-  const liveRows: SheetRow[] = [];
+  // Process all rows to associate them with parsed dates
+  const rowsWithDates = allData.map(row => ({
+    row,
+    parsedDate: parseSheetDate(row.date)
+  })).filter(item => item.parsedDate !== null) as { row: SheetRow; parsedDate: Date }[];
+
+  // 1. Live Data: Classes on the liveTargetDate
+  const liveRows = rowsWithDates
+    .filter(item => isSameDay(item.parsedDate, liveTargetDate))
+    .map(item => item.row);
+
+  // 2. Archive Data: Classes from the most recent day BEFORE the liveTargetDate
+  // Get all unique dates strictly before the liveTargetDate
+  const pastDates = Array.from(new Set(
+    rowsWithDates
+      .filter(item => isBefore(item.parsedDate, liveTargetDate))
+      .map(item => item.parsedDate.getTime())
+  )).sort((a, b) => b - a); // Sort descending (most recent first)
+
   const archiveRows: SheetRow[] = [];
+  let actualArchiveDate = null;
 
-  allData.forEach(row => {
-    const rowDate = parseSheetDate(row.date);
-    if (!rowDate) return;
-
-    const rowDayStart = startOfDay(rowDate);
-
-    if (isSameDay(rowDayStart, liveTargetDate)) {
-      liveRows.push(row);
-    } else if (isSameDay(rowDayStart, archiveTargetDate)) {
-      archiveRows.push(row);
-    }
-  });
+  if (pastDates.length > 0) {
+    const latestPastDate = new Date(pastDates[0]);
+    actualArchiveDate = latestPastDate.toISOString();
+    rowsWithDates
+      .filter(item => isSameDay(item.parsedDate, latestPastDate))
+      .forEach(item => archiveRows.push(item.row));
+  }
 
   return {
     live: liveRows,
     archive: archiveRows,
     isNextDayPreview: isAfterCutoff,
-    currentTime: nowBD.toISOString()
+    currentTime: nowBD.toISOString(),
+    archiveDate: actualArchiveDate
   };
 }

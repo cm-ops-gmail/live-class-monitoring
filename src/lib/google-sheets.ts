@@ -49,14 +49,14 @@ export async function fetchSheetData(): Promise<SheetRow[]> {
       headers.forEach((header, index) => {
         const val = (row[index] || '').toString().trim();
         
-        // Map strictly based on user requirements
-        if (header.includes('date')) rowData.date = val;
-        else if (header.includes('scheduled time') || header === 'time') rowData.time = val;
-        else if (header.includes('product type')) rowData.productType = val;
-        else if (header.includes('course')) rowData.course = val;
-        else if (header.includes('subject')) rowData.subject = val;
-        else if (header.includes('topic')) rowData.topic = val;
-        else if (header.includes('teacher 1')) rowData.teacher1 = val;
+        // Exact mapping for the requested columns
+        if (header === 'date' || header.includes('date')) rowData.date = val;
+        else if (header === 'scheduled time' || header === 'time') rowData.time = val;
+        else if (header === 'product type') rowData.productType = val;
+        else if (header === 'course') rowData.course = val;
+        else if (header === 'subject') rowData.subject = val;
+        else if (header === 'topic') rowData.topic = val;
+        else if (header === 'teacher 1') rowData.teacher1 = val;
         else if (header.includes('teacher 2') || header.includes('doubt solver 1')) rowData.teacher2 = val;
         else if (header.includes('teacher 3') || header.includes('doubt solver 2')) rowData.teacher3 = val;
         

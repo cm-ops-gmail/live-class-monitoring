@@ -12,7 +12,13 @@ import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 
 export function DashboardShell() {
-  const [data, setData] = useState<{ live: SheetRow[]; archive: SheetRow[]; isNextDayPreview: boolean; currentTime: string } | null>(null);
+  const [data, setData] = useState<{ 
+    live: SheetRow[]; 
+    archive: SheetRow[]; 
+    isNextDayPreview: boolean; 
+    currentTime: string;
+    archiveDate: string | null;
+  } | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -157,7 +163,7 @@ export function DashboardShell() {
               {data?.isNextDayPreview && <Badge variant="secondary" className="bg-accent/10 text-accent border-accent/20">Preview Mode</Badge>}
             </h3>
             <p className="text-sm text-muted-foreground">
-              Status: {data?.isNextDayPreview ? "Displaying tomorrow's requirements" : "Displaying today's active requirements"}
+              Displaying classes for: {data?.isNextDayPreview ? "Tomorrow" : "Today"}
             </p>
           </div>
           {renderCardGrid(data?.live || [], "No requirements found for the active session.")}
@@ -170,10 +176,10 @@ export function DashboardShell() {
               <Badge variant="outline" className="text-muted-foreground">Historical View</Badge>
             </h3>
             <p className="text-sm text-muted-foreground">
-              Displaying the most recently completed session's data.
+              Displaying data for: {data?.archiveDate ? format(new Date(data.archiveDate), 'PPPP') : '---'}
             </p>
           </div>
-          {renderCardGrid(data?.archive || [], "No archived data found for the previous session.")}
+          {renderCardGrid(data?.archive || [], "No archived data found.")}
         </TabsContent>
       </Tabs>
     </div>
