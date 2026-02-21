@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -57,6 +57,19 @@ export function DashboardShell() {
     const allReady = s1 && s2 && s3 && s4;
     return { allReady, s1, s2, s3, s4 };
   };
+
+  const scrollToRow = useCallback((tabType: 'live' | 'archive', index: number) => {
+    const elementId = `${tabType}-row-${index}`;
+    const element = document.getElementById(elementId);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      // Temporary highlight effect
+      element.classList.add('bg-primary/20');
+      setTimeout(() => {
+        element.classList.remove('bg-primary/20');
+      }, 2000);
+    }
+  }, []);
 
   if (loading) {
     return (
@@ -118,17 +131,22 @@ export function DashboardShell() {
                     </div>
 
                     <div className="flex flex-col items-end gap-2">
-                      {allReady ? (
-                        <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 font-black text-xs uppercase tracking-tight py-1.5 px-3 flex items-center gap-2">
-                          <CheckCircle2 className="h-4 w-4" />
-                          Ready to go live
-                        </Badge>
-                      ) : (
-                        <Badge className="bg-red-500/20 text-red-500 border-red-500/30 font-black text-xs uppercase tracking-tight py-1.5 px-3 animate-attention flex items-center gap-2">
-                          <AlertCircle className="h-4 w-4" />
-                          Need Attention
-                        </Badge>
-                      )}
+                      <button 
+                        onClick={() => scrollToRow(tabType, i)}
+                        className="transition-transform active:scale-95 cursor-pointer"
+                      >
+                        {allReady ? (
+                          <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 font-black text-xs uppercase tracking-tight py-2 px-4 flex items-center gap-2 hover:bg-emerald-500/30">
+                            <CheckCircle2 className="h-4 w-4" />
+                            Ready to go live
+                          </Badge>
+                        ) : (
+                          <Badge className="bg-red-500/20 text-red-500 border-red-500/30 font-black text-xs uppercase tracking-tight py-2 px-4 animate-attention flex items-center gap-2 hover:bg-red-500/30">
+                            <AlertCircle className="h-4 w-4" />
+                            Need Attention
+                          </Badge>
+                        )}
+                      </button>
                       <StatusBadge timeStr={row.time} />
                     </div>
                   </div>
@@ -197,7 +215,11 @@ export function DashboardShell() {
                   );
 
                   return (
-                    <TableRow key={i} className="border-white/5 hover:bg-white/5 transition-colors">
+                    <TableRow 
+                      key={i} 
+                      id={`${tabType}-row-${i}`}
+                      className="border-white/5 hover:bg-white/5 transition-colors duration-500 scroll-mt-24"
+                    >
                       <TableCell className="font-bold text-xs text-muted-foreground py-4">{row.date}</TableCell>
                       <TableCell className="font-black text-white text-sm">{row.topic || 'N/A'}</TableCell>
                       <TableCell className="text-center"><StatusIcon ready={status.s1} /></TableCell>
