@@ -32,7 +32,7 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground font-body antialiased;
+    @apply bg-black text-foreground font-body antialiased;
   }
   h1, h2, h3, h4, h5, h6 {
     @apply font-headline tracking-tight;
@@ -40,8 +40,8 @@
 }
 
 @keyframes glow {
-  0%, 100% { box-shadow: 0 0 5px rgba(100, 116, 255, 0.2); }
-  50% { box-shadow: 0 0 20px rgba(100, 116, 255, 0.4); }
+  0%, 100% { box-shadow: 0 0 5px rgba(100, 116, 255, 0.1); }
+  50% { box-shadow: 0 0 20px rgba(100, 116, 255, 0.2); }
 }
 
 .animate-glow {
@@ -49,5 +49,15 @@
 }
 
 .card-hover-effect {
-  @apply transition-all duration-500 ease-out hover:-translate-y-3 hover:shadow-2xl hover:shadow-primary/20;
+  @apply transition-all duration-500 ease-out hover:-translate-y-2 hover:shadow-2xl hover:shadow-primary/10 hover:border-primary/20;
+}
+
+/* Custom blinking for critical attention */
+@keyframes attention-blink {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(0.98); }
+}
+
+.animate-attention {
+  animation: attention-blink 0.8s ease-in-out infinite;
 }

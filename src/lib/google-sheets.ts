@@ -21,6 +21,10 @@ export interface SheetRow {
   teacher1: string;
   teacher2: string;
   teacher3: string;
+  teacherAlignment: string;
+  slide: string;
+  titleCaption: string;
+  platformCrosspost: string;
   [key: string]: string;
 }
 
@@ -32,16 +36,15 @@ export async function fetchSheetData(): Promise<SheetRow[]> {
     });
 
     const sheets = google.sheets({ version: 'v4', auth });
-    // Fetch a large enough range to cover the whole table
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: SHEET_ID,
       range: `${TAB_NAME}!A:Z`,
     });
 
     const rows = response.data.values;
-    // According to user, headers are in the second row (index 1)
     if (!rows || rows.length < 2) return [];
 
+    // Headers are in the second row (index 1)
     const headers = rows[1].map(h => h.toString().trim().toLowerCase());
     
     const dataRows = rows.slice(2).map(row => {
@@ -59,6 +62,10 @@ export async function fetchSheetData(): Promise<SheetRow[]> {
         else if (header === 'teacher 1') rowData.teacher1 = val;
         else if (header.includes('teacher 2') || header.includes('doubt solver 1')) rowData.teacher2 = val;
         else if (header.includes('teacher 3') || header.includes('doubt solver 2')) rowData.teacher3 = val;
+        else if (header.includes('teacher alignment') || header.includes('teacher allignment')) rowData.teacherAlignment = val;
+        else if (header === 'slide') rowData.slide = val;
+        else if (header.includes('title & caption')) rowData.titleCaption = val;
+        else if (header.includes('platform & cross post') || header.includes('platform & cros post')) rowData.platformCrosspost = val;
         
         rowData[header] = val;
       });
