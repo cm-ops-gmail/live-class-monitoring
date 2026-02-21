@@ -1,7 +1,7 @@
 'use server';
 
 import { fetchSheetData, SheetRow } from '@/lib/google-sheets';
-import { isAfter, isBefore, isSameDay, addDays, setHours, setMinutes, parse, isValid } from 'date-fns';
+import { isAfter, isBefore, isSameDay, addDays, setHours, setMinutes, parse, isValid, startOfDay } from 'date-fns';
 
 /**
  * Get current time in Bangladesh (UTC+6)
@@ -14,39 +14,31 @@ function getBangladeshNow() {
 
 /**
  * Robust date parsing for spreadsheet strings
+ * Specifically handles: "Friday, February 20, 2026"
  */
 function parseSheetDate(dateStr: string): Date | null {
   if (!dateStr) return null;
   
-  // Try native parsing first
-  const d = new Date(dateStr);
-  if (isValid(d) && !isNaN(d.getTime())) return d;
+  // Clean string
+  const cleanStr = dateStr.trim();
 
-  // Handle formats like "21-Feb-25" or "21/02/2025"
-  const mmmMap: Record<string, number> = {
-    jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5,
-    jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11
-  };
-  
-  const cleanStr = dateStr.replace(/,/g, '');
-  const parts = cleanStr.split(/[-/.\s]+/);
-  
-  if (parts.length >= 2) {
-    let day = parseInt(parts[0]);
-    let monthStr = parts[1].toLowerCase().substring(0, 3);
-    let year = parts[2] ? parseInt(parts[2]) : new Date().getFullYear();
+  // Try parsing the format "Friday, February 20, 2026" (EEEE, MMMM d, yyyy)
+  const formats = [
+    'EEEE, MMMM d, yyyy',
+    'MMMM d, yyyy',
+    'd-MMM-yy',
+    'd/M/yyyy',
+    'yyyy-MM-dd'
+  ];
 
-    // Swapped DD-MMM and MMM-DD if necessary
-    if (isNaN(day)) {
-      monthStr = parts[0].toLowerCase().substring(0, 3);
-      day = parseInt(parts[1]);
-    }
-
-    if (mmmMap[monthStr] !== undefined && !isNaN(day)) {
-      if (year < 100) year += 2000;
-      return new Date(year, mmmMap[monthStr], day);
-    }
+  for (const fmt of formats) {
+    const parsed = parse(cleanStr, fmt, new Date());
+    if (isValid(parsed)) return startOfDay(parsed);
   }
+
+  // Fallback to native if above fails
+  const native = new Date(cleanStr);
+  if (isValid(native) && !isNaN(native.getTime())) return startOfDay(native);
 
   return null;
 }
@@ -56,7 +48,7 @@ export async function getDashboardData() {
   const nowBD = getBangladeshNow();
   
   // Normalize BD Today
-  const bdTodayStart = new Date(nowBD.getFullYear(), nowBD.getMonth(), nowBD.getDate());
+  const bdTodayStart = startOfDay(nowBD);
   const bdTomorrowStart = addDays(bdTodayStart, 1);
   
   // Cutoff is exactly 1:00 PM Bangladesh Time
@@ -66,24 +58,26 @@ export async function getDashboardData() {
   const liveRows: SheetRow[] = [];
   const archiveRows: SheetRow[] = [];
 
-  // Target date for "Live" is today before 1 PM, and tomorrow after 1 PM.
+  // Target date for "Live" is today before 1 PM, and tomorrow (or next available) after 1 PM.
+  // Note: If today is Feb 21 and it's 2 PM, Feb 21 data moves to Archive.
   const liveTargetDate = isAfterCutoff ? bdTomorrowStart : bdTodayStart;
 
   allData.forEach(row => {
     const rowDate = parseSheetDate(row.date);
-    if (!rowDate) {
-      // If no date, put in archive as a fallback
-      archiveRows.push(row);
-      return;
-    }
+    if (!rowDate) return; // Skip rows without valid dates
 
-    const rowDayStart = new Date(rowDate.getFullYear(), rowDate.getMonth(), rowDate.getDate());
+    const rowDayStart = startOfDay(rowDate);
 
+    // If row date matches our target live date, it's live
     if (isSameDay(rowDayStart, liveTargetDate)) {
       liveRows.push(row);
-    } else if (isBefore(rowDayStart, liveTargetDate)) {
+    } 
+    // If row date is before our current target, it's archive
+    // (This includes today's data if it's past 1 PM)
+    else if (isBefore(rowDayStart, liveTargetDate)) {
       archiveRows.push(row);
     }
+    // Future dates beyond target remain hidden or could be filtered similarly
   });
 
   return {
@@ -91,7 +85,7 @@ export async function getDashboardData() {
     archive: archiveRows.sort((a, b) => {
        const da = parseSheetDate(a.date)?.getTime() || 0;
        const db = parseSheetDate(b.date)?.getTime() || 0;
-       return db - da;
+       return db - da; // Newest first
     }),
     isNextDayPreview: isAfterCutoff,
     currentTime: nowBD.toISOString()

@@ -32,21 +32,24 @@ export async function fetchSheetData(): Promise<SheetRow[]> {
     });
 
     const sheets = google.sheets({ version: 'v4', auth });
+    // Fetch a large enough range to cover the whole table
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: SHEET_ID,
       range: `${TAB_NAME}!A:Z`,
     });
 
     const rows = response.data.values;
-    if (!rows || rows.length < 1) return [];
+    // According to user, headers are in the second row (index 1)
+    if (!rows || rows.length < 2) return [];
 
-    const headers = rows[0].map(h => h.toString().trim().toLowerCase());
+    const headers = rows[1].map(h => h.toString().trim().toLowerCase());
     
-    const dataRows = rows.slice(1).map(row => {
+    const dataRows = rows.slice(2).map(row => {
       const rowData: any = {};
       headers.forEach((header, index) => {
         const val = (row[index] || '').toString().trim();
         
+        // Map strictly based on user requirements
         if (header.includes('date')) rowData.date = val;
         else if (header.includes('scheduled time') || header === 'time') rowData.time = val;
         else if (header.includes('product type')) rowData.productType = val;
