@@ -52,7 +52,7 @@
   @apply transition-all duration-500 ease-out hover:-translate-y-2 hover:shadow-2xl hover:shadow-primary/10 hover:border-primary/20;
 }
 
-/* Custom blinking for critical attention */
+/* Blinking for attention (Fast) */
 @keyframes attention-blink {
   0%, 100% { opacity: 1; transform: scale(1); }
   50% { opacity: 0.6; transform: scale(0.98); }
@@ -60,4 +60,14 @@
 
 .animate-attention {
   animation: attention-blink 0.8s ease-in-out infinite;
+}
+
+/* Slow green glow for Live Now */
+@keyframes live-glow {
+  0%, 100% { opacity: 1; background-color: rgba(16, 185, 129, 0.2); }
+  50% { opacity: 0.7; background-color: rgba(16, 185, 129, 0.4); }
+}
+
+.animate-live-glow {
+  animation: live-glow 2.5s ease-in-out infinite;
 }

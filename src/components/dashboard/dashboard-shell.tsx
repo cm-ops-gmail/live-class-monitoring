@@ -6,7 +6,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { getDashboardData } from '@/app/actions/sheets';
 import { SheetRow } from '@/lib/google-sheets';
-import { StatusBadge } from './status-badge';
 import { Loader2, RefreshCw, Archive, PlayCircle, Calendar, User, BookOpen, Clock, Sparkles, CheckCircle2, XCircle, AlertCircle, Info, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { format, addHours, isWithinInterval, parse } from 'date-fns';
@@ -102,28 +101,13 @@ export function DashboardShell() {
     });
   }, [data?.live, liveTime]);
 
-  if (loading) {
-    return (
-      <div className="flex h-[70vh] flex-col items-center justify-center gap-6">
-        <div className="relative">
-          <Loader2 className="h-16 w-16 animate-spin text-primary" />
-          <div className="absolute inset-0 blur-xl bg-primary/20 rounded-full animate-pulse" />
-        </div>
-        <div className="text-center space-y-2">
-          <h3 className="text-lg font-bold tracking-widest uppercase">Initializing Sync</h3>
-          <p className="text-sm font-medium text-muted-foreground animate-pulse">Establishing secure connection...</p>
-        </div>
-      </div>
-    );
-  }
-
-  const renderCard = (row: SheetRow, i: number, tabType: 'live' | 'archive') => {
+  const renderCard = (row: SheetRow, i: number, tabType: 'live' | 'archive', isLiveNow: boolean = false) => {
     const { allReady } = getRowStatus(row);
     return (
       <Card 
         key={i} 
         className={cn(
-          "group card-hover-effect relative border-white/5 bg-gradient-to-br from-secondary/40 to-black overflow-hidden animate-in fade-in slide-in-from-bottom-8 duration-700 delay-[var(--delay)]",
+          "group card-hover-effect relative border-white/5 bg-gradient-to-br from-secondary/40 to-black overflow-hidden animate-in fade-in slide-in-from-bottom-8 duration-700",
         )}
         style={{ "--delay": `${i * 100}ms` } as any}
       >
@@ -145,7 +129,12 @@ export function DashboardShell() {
                 onClick={() => scrollToRow(tabType, i)}
                 className="transition-transform active:scale-95 cursor-pointer"
               >
-                {allReady ? (
+                {isLiveNow ? (
+                  <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 font-black text-xs uppercase tracking-tight py-2 px-4 animate-live-glow flex items-center gap-2 hover:bg-emerald-500/30">
+                    <PlayCircle className="h-4 w-4" />
+                    Live Now
+                  </Badge>
+                ) : allReady ? (
                   <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 font-black text-xs uppercase tracking-tight py-2 px-4 flex items-center gap-2 hover:bg-emerald-500/30">
                     <CheckCircle2 className="h-4 w-4" />
                     Ready to go live
@@ -157,45 +146,13 @@ export function DashboardShell() {
                   </Badge>
                 )}
               </button>
-              <StatusBadge timeStr={row.time} />
             </div>
           </div>
 
           <div className="flex flex-col gap-2">
-            <div className="flex justify-between items-start gap-4">
-              <CardTitle className="text-2xl font-black text-white leading-tight tracking-tight group-hover:text-primary transition-colors duration-300">
-                {row.subject || 'Subject Pending'}
-              </CardTitle>
-              
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full bg-white/5 hover:bg-primary/20 hover:text-primary transition-all">
-                    <Info className="h-4 w-4" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-80 bg-black/95 border-white/10 backdrop-blur-xl p-0 shadow-2xl overflow-hidden" align="end">
-                  <div className="p-4 border-b border-white/10 bg-white/5">
-                    <h4 className="font-black uppercase tracking-widest text-xs text-primary flex items-center gap-2">
-                      <ExternalLink className="h-3 w-3" />
-                      Class Metadata
-                    </h4>
-                  </div>
-                  <ScrollArea className="h-[300px] p-4">
-                    <div className="space-y-4">
-                      {Object.entries(row).map(([key, value]) => {
-                        if (!value || typeof value !== 'string') return null;
-                        return (
-                          <div key={key} className="space-y-1">
-                            <span className="text-[9px] font-black uppercase tracking-tighter text-muted-foreground block">{key.replace(/([A-Z])/g, ' $1')}</span>
-                            <p className="text-xs font-medium text-white/90 leading-relaxed">{value}</p>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </ScrollArea>
-                </PopoverContent>
-              </Popover>
-            </div>
+            <CardTitle className="text-2xl font-black text-white leading-tight tracking-tight group-hover:text-primary transition-colors duration-300">
+              {row.subject || 'Subject Pending'}
+            </CardTitle>
             
             <CardDescription className="text-base font-bold text-accent flex items-center gap-2">
               <Sparkles className="h-4 w-4" />
@@ -220,6 +177,38 @@ export function DashboardShell() {
               <Clock className="h-4 w-4 text-primary" />
               {row.time || 'TBA'}
             </div>
+
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full bg-white/5 hover:bg-primary/20 hover:text-primary transition-all">
+                  <Info className="h-4 w-4" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[400px] md:w-[600px] bg-black/95 border-white/10 backdrop-blur-xl p-0 shadow-2xl overflow-hidden" align="end">
+                <div className="p-4 border-b border-white/10 bg-white/5 flex items-center justify-between">
+                  <h4 className="font-black uppercase tracking-widest text-xs text-primary flex items-center gap-2">
+                    <ExternalLink className="h-3 w-3" />
+                    Full Class Details
+                  </h4>
+                  <Badge variant="outline" className="text-[9px] border-white/10 text-muted-foreground">{row.date}</Badge>
+                </div>
+                <ScrollArea className="h-[400px] p-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+                    {Object.entries(row).map(([key, value]) => {
+                      if (!value || typeof value !== 'string') return null;
+                      return (
+                        <div key={key} className="space-y-1.5 pb-3 border-b border-white/5">
+                          <span className="text-[9px] font-black uppercase tracking-widest text-primary/60 block">
+                            {key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
+                          </span>
+                          <p className="text-xs font-bold text-white/90 leading-relaxed break-words">{value}</p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </ScrollArea>
+              </PopoverContent>
+            </Popover>
           </div>
         </CardContent>
       </Card>
@@ -252,7 +241,7 @@ export function DashboardShell() {
         <div className="space-y-6">
           <div className="flex items-center gap-4 px-2">
             <div className="h-px flex-1 bg-white/5" />
-            <h3 className="text-sm font-black uppercase tracking-[0.4em] text-muted-foreground">Detailed Sync Matrix</h3>
+            <h3 className="text-sm font-black uppercase tracking-[0.4em] text-muted-foreground">Detailed Class Data</h3>
             <div className="h-px flex-1 bg-white/5" />
           </div>
 
@@ -262,6 +251,7 @@ export function DashboardShell() {
                 <TableRow className="border-white/5 hover:bg-transparent">
                   <TableHead className="text-white font-black uppercase tracking-widest text-[10px] py-6">Date</TableHead>
                   <TableHead className="text-white font-black uppercase tracking-widest text-[10px]">Topic</TableHead>
+                  <TableHead className="text-white font-black uppercase tracking-widest text-[10px]">Time</TableHead>
                   <TableHead className="text-white font-black uppercase tracking-widest text-[10px] text-center">Teacher Alignment</TableHead>
                   <TableHead className="text-white font-black uppercase tracking-widest text-[10px] text-center">Slide</TableHead>
                   <TableHead className="text-white font-black uppercase tracking-widest text-[10px] text-center">Title &amp; Caption</TableHead>
@@ -283,8 +273,9 @@ export function DashboardShell() {
                       id={`${tabType}-row-${i}`}
                       className="border-white/5 hover:bg-white/5 transition-colors duration-500 scroll-mt-24"
                     >
-                      <TableCell className="font-bold text-xs text-muted-foreground py-4">{row.date}</TableCell>
+                      <TableCell className="font-bold text-xs text-muted-foreground py-4 whitespace-nowrap">{row.date}</TableCell>
                       <TableCell className="font-black text-white text-sm">{row.topic || 'N/A'}</TableCell>
+                      <TableCell className="font-bold text-xs text-primary/80 whitespace-nowrap">{row.time || 'TBA'}</TableCell>
                       <TableCell className="text-center"><StatusIcon ready={status.s1} /></TableCell>
                       <TableCell className="text-center"><StatusIcon ready={status.s2} /></TableCell>
                       <TableCell className="text-center"><StatusIcon ready={status.s3} /></TableCell>
@@ -299,6 +290,21 @@ export function DashboardShell() {
       </div>
     );
   };
+
+  if (loading) {
+    return (
+      <div className="flex h-[70vh] flex-col items-center justify-center gap-6">
+        <div className="relative">
+          <Loader2 className="h-16 w-16 animate-spin text-primary" />
+          <div className="absolute inset-0 blur-xl bg-primary/20 rounded-full animate-pulse" />
+        </div>
+        <div className="text-center space-y-2">
+          <h3 className="text-lg font-bold tracking-widest uppercase">Initializing Sync</h3>
+          <p className="text-sm font-medium text-muted-foreground animate-pulse">Establishing secure connection...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-12 animate-in fade-in duration-1000">
@@ -359,7 +365,7 @@ export function DashboardShell() {
               <div className="space-y-1">
                 <h3 className="text-2xl font-black flex items-center gap-3">
                   Live Now
-                  <div className="h-2 w-2 rounded-full bg-red-500 animate-ping" />
+                  <div className="h-3 w-3 rounded-full bg-emerald-500 animate-ping" />
                 </h3>
                 <p className="text-sm text-muted-foreground">
                   Classes currently in progress (2-hour active window).
@@ -368,7 +374,7 @@ export function DashboardShell() {
             </div>
             {liveNowRows.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {liveNowRows.map((row, i) => renderCard(row, i, 'live'))}
+                {liveNowRows.map((row, i) => renderCard(row, i, 'live', true))}
               </div>
             ) : (
               <Card className="py-12 text-center bg-white/5 border-white/5 rounded-3xl">
