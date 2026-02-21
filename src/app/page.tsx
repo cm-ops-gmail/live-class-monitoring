@@ -1,26 +1,36 @@
 
 import { DashboardShell } from '@/components/dashboard/dashboard-shell';
-import { PlayCircle } from 'lucide-react';
+import Image from 'next/image';
 
 export default function Home() {
   return (
-    <main className="min-h-screen bg-background">
+    <main className="min-h-screen bg-black">
       {/* Top Navbar */}
-      <nav className="bg-primary text-white shadow-lg sticky top-0 z-50">
+      <nav className="bg-black border-b border-white/10 sticky top-0 z-50 backdrop-blur-md">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-white/10 rounded-lg backdrop-blur-md">
-                <PlayCircle className="h-6 w-6 text-accent" />
-              </div>
-              <div>
-                <h1 className="text-xl font-bold tracking-wider uppercase font-headline">SheetSync</h1>
-                <p className="text-[10px] text-white/70 font-medium -mt-1 tracking-tighter">DASHBOARD SYSTEM</p>
+              <div className="relative h-10 w-32">
+                {/* 
+                  INSTRUCTIONS: 
+                  1. Upload your logo to the 'public' folder.
+                  2. Name it exactly 'logo.png'.
+                  3. The component below will automatically display it.
+                */}
+                <Image 
+                  src="/logo.png" 
+                  alt="Company Logo" 
+                  fill
+                  className="object-contain object-left"
+                  priority
+                />
               </div>
             </div>
             <div className="hidden md:block">
               <div className="flex items-baseline space-x-4">
-                <span className="text-sm font-medium text-white/80">Google Sheets Live Sync</span>
+                <span className="text-xs font-black uppercase tracking-[0.3em] text-primary/60">
+                  Content Operations Monitor
+                </span>
               </div>
             </div>
           </div>
@@ -33,9 +43,11 @@ export default function Home() {
       </div>
 
       {/* Footer */}
-      <footer className="mt-auto border-t py-6 bg-white/50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-sm text-muted-foreground">
-          <p>&copy; {new Date().getFullYear()} SheetSync Dashboard. Connected to Google Sheets API.</p>
+      <footer className="mt-auto border-t border-white/10 py-8 bg-black">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
+            &copy; 2025 10 MS Content Operations. All rights reserved.
+          </p>
         </div>
       </footer>
     </main>
