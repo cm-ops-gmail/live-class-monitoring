@@ -1,17 +1,19 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { getDashboardData } from '@/app/actions/sheets';
 import { SheetRow } from '@/lib/google-sheets';
 import { StatusBadge } from './status-badge';
-import { Loader2, RefreshCw, Archive, PlayCircle, Calendar, User, BookOpen, Clock, Sparkles, CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
+import { Loader2, RefreshCw, Archive, PlayCircle, Calendar, User, BookOpen, Clock, Sparkles, CheckCircle2, XCircle, AlertCircle, Info, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { format } from 'date-fns';
+import { format, addHours, isWithinInterval, parse } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 export function DashboardShell() {
   const [data, setData] = useState<{ 
@@ -84,6 +86,22 @@ export function DashboardShell() {
     }
   }, []);
 
+  // Logic for "Live Now" (2 hour window)
+  const liveNowRows = useMemo(() => {
+    if (!data?.live || !liveTime) return [];
+    
+    return data.live.filter(row => {
+      try {
+        const timePart = row.time.split('-')[0].trim();
+        const startTime = parse(timePart, 'h:mm a', liveTime);
+        const endTime = addHours(startTime, 2);
+        return isWithinInterval(liveTime, { start: startTime, end: endTime });
+      } catch (e) {
+        return false;
+      }
+    });
+  }, [data?.live, liveTime]);
+
   if (loading) {
     return (
       <div className="flex h-[70vh] flex-col items-center justify-center gap-6">
@@ -98,6 +116,115 @@ export function DashboardShell() {
       </div>
     );
   }
+
+  const renderCard = (row: SheetRow, i: number, tabType: 'live' | 'archive') => {
+    const { allReady } = getRowStatus(row);
+    return (
+      <Card 
+        key={i} 
+        className={cn(
+          "group card-hover-effect relative border-white/5 bg-gradient-to-br from-secondary/40 to-black overflow-hidden animate-in fade-in slide-in-from-bottom-8 duration-700 delay-[var(--delay)]",
+        )}
+        style={{ "--delay": `${i * 100}ms` } as any}
+      >
+        <div className="absolute -right-20 -top-20 h-40 w-40 bg-primary/5 blur-[80px] group-hover:bg-primary/10 transition-all duration-700" />
+        
+        <CardHeader className="pb-4 relative z-10">
+          <div className="flex justify-between items-start mb-6">
+            <div className="flex flex-col gap-1.5">
+              <Badge variant="outline" className="w-fit text-[10px] font-black uppercase tracking-[0.2em] bg-primary/10 text-primary border-primary/20 px-3 py-1">
+                {row.productType || 'Requirement'}
+              </Badge>
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                {row.course || 'Global Course'}
+              </span>
+            </div>
+
+            <div className="flex flex-col items-end gap-2">
+              <button 
+                onClick={() => scrollToRow(tabType, i)}
+                className="transition-transform active:scale-95 cursor-pointer"
+              >
+                {allReady ? (
+                  <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 font-black text-xs uppercase tracking-tight py-2 px-4 flex items-center gap-2 hover:bg-emerald-500/30">
+                    <CheckCircle2 className="h-4 w-4" />
+                    Ready to go live
+                  </Badge>
+                ) : (
+                  <Badge className="bg-red-500/20 text-red-500 border-red-500/30 font-black text-xs uppercase tracking-tight py-2 px-4 animate-attention flex items-center gap-2 hover:bg-red-500/30">
+                    <AlertCircle className="h-4 w-4" />
+                    Need Attention
+                  </Badge>
+                )}
+              </button>
+              <StatusBadge timeStr={row.time} />
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <div className="flex justify-between items-start gap-4">
+              <CardTitle className="text-2xl font-black text-white leading-tight tracking-tight group-hover:text-primary transition-colors duration-300">
+                {row.subject || 'Subject Pending'}
+              </CardTitle>
+              
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full bg-white/5 hover:bg-primary/20 hover:text-primary transition-all">
+                    <Info className="h-4 w-4" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-80 bg-black/95 border-white/10 backdrop-blur-xl p-0 shadow-2xl overflow-hidden" align="end">
+                  <div className="p-4 border-b border-white/10 bg-white/5">
+                    <h4 className="font-black uppercase tracking-widest text-xs text-primary flex items-center gap-2">
+                      <ExternalLink className="h-3 w-3" />
+                      Class Metadata
+                    </h4>
+                  </div>
+                  <ScrollArea className="h-[300px] p-4">
+                    <div className="space-y-4">
+                      {Object.entries(row).map(([key, value]) => {
+                        if (!value || typeof value !== 'string') return null;
+                        return (
+                          <div key={key} className="space-y-1">
+                            <span className="text-[9px] font-black uppercase tracking-tighter text-muted-foreground block">{key.replace(/([A-Z])/g, ' $1')}</span>
+                            <p className="text-xs font-medium text-white/90 leading-relaxed">{value}</p>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </ScrollArea>
+                </PopoverContent>
+              </Popover>
+            </div>
+            
+            <CardDescription className="text-base font-bold text-accent flex items-center gap-2">
+              <Sparkles className="h-4 w-4" />
+              {row.topic || 'General Topic'}
+            </CardDescription>
+          </div>
+        </CardHeader>
+
+        <CardContent className="space-y-6 pb-6 relative z-10">
+          <div className="flex items-center gap-4 bg-white/5 p-4 rounded-2xl border border-white/5 group-hover:border-primary/10 transition-all duration-500">
+            <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 border border-primary/20">
+              <User className="h-6 w-6 text-primary" />
+            </div>
+            <div className="flex flex-col min-w-0">
+              <span className="text-[10px] uppercase font-black text-muted-foreground tracking-widest mb-0.5">Primary Teacher</span>
+              <span className="text-base font-bold text-white truncate">{row.teacher1 || 'Assigning...'}</span>
+            </div>
+          </div>
+          
+          <div className="flex items-center justify-between text-xs text-muted-foreground px-1">
+            <div className="flex items-center gap-2 font-bold uppercase tracking-tighter">
+              <Clock className="h-4 w-4 text-primary" />
+              {row.time || 'TBA'}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
 
   const renderContent = (rows: SheetRow[], emptyMessage: string, tabType: 'live' | 'archive') => {
     if (rows.length === 0) {
@@ -119,82 +246,7 @@ export function DashboardShell() {
     return (
       <div className="space-y-16">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {rows.map((row, i) => {
-            const { allReady } = getRowStatus(row);
-            return (
-              <Card 
-                key={i} 
-                className={cn(
-                  "group card-hover-effect relative border-white/5 bg-gradient-to-br from-secondary/40 to-black overflow-hidden animate-in fade-in slide-in-from-bottom-8 duration-700 delay-[var(--delay)]",
-                )}
-                style={{ "--delay": `${i * 100}ms` } as any}
-              >
-                <div className="absolute -right-20 -top-20 h-40 w-40 bg-primary/5 blur-[80px] group-hover:bg-primary/10 transition-all duration-700" />
-                
-                <CardHeader className="pb-4 relative z-10">
-                  <div className="flex justify-between items-start mb-6">
-                    <div className="flex flex-col gap-1.5">
-                      <Badge variant="outline" className="w-fit text-[10px] font-black uppercase tracking-[0.2em] bg-primary/10 text-primary border-primary/20 px-3 py-1">
-                        {row.productType || 'Requirement'}
-                      </Badge>
-                      <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
-                        {row.course || 'Global Course'}
-                      </span>
-                    </div>
-
-                    <div className="flex flex-col items-end gap-2">
-                      <button 
-                        onClick={() => scrollToRow(tabType, i)}
-                        className="transition-transform active:scale-95 cursor-pointer"
-                      >
-                        {allReady ? (
-                          <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 font-black text-xs uppercase tracking-tight py-2 px-4 flex items-center gap-2 hover:bg-emerald-500/30">
-                            <CheckCircle2 className="h-4 w-4" />
-                            Ready to go live
-                          </Badge>
-                        ) : (
-                          <Badge className="bg-red-500/20 text-red-500 border-red-500/30 font-black text-xs uppercase tracking-tight py-2 px-4 animate-attention flex items-center gap-2 hover:bg-red-500/30">
-                            <AlertCircle className="h-4 w-4" />
-                            Need Attention
-                          </Badge>
-                        )}
-                      </button>
-                      <StatusBadge timeStr={row.time} />
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col gap-2">
-                    <CardTitle className="text-2xl font-black text-white leading-tight tracking-tight group-hover:text-primary transition-colors duration-300">
-                      {row.subject || 'Subject Pending'}
-                    </CardTitle>
-                    <CardDescription className="text-base font-bold text-accent flex items-center gap-2">
-                      <Sparkles className="h-4 w-4" />
-                      {row.topic || 'General Topic'}
-                    </CardDescription>
-                  </div>
-                </CardHeader>
-
-                <CardContent className="space-y-6 pb-6 relative z-10">
-                  <div className="flex items-center gap-4 bg-white/5 p-4 rounded-2xl border border-white/5 group-hover:border-primary/10 transition-all duration-500">
-                    <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 border border-primary/20">
-                      <User className="h-6 w-6 text-primary" />
-                    </div>
-                    <div className="flex flex-col min-w-0">
-                      <span className="text-[10px] uppercase font-black text-muted-foreground tracking-widest mb-0.5">Primary Teacher</span>
-                      <span className="text-base font-bold text-white truncate">{row.teacher1 || 'Assigning...'}</span>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center justify-between text-xs text-muted-foreground px-1">
-                    <div className="flex items-center gap-2 font-bold uppercase tracking-tighter">
-                      <Clock className="h-4 w-4 text-primary" />
-                      {row.time || 'TBA'}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
+          {rows.map((row, i) => renderCard(row, i, tabType))}
         </div>
 
         <div className="space-y-6">
@@ -292,29 +344,56 @@ export function DashboardShell() {
         <TabsList className="flex w-fit bg-secondary/50 border border-white/10 p-1.5 rounded-2xl h-auto mb-10 mx-auto">
           <TabsTrigger value="live" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground px-8 py-3 rounded-xl font-black uppercase tracking-widest text-[10px] transition-all duration-300">
             <PlayCircle className="mr-2 h-4 w-4" />
-            Live Matrix
+            Upcoming Classes
           </TabsTrigger>
           <TabsTrigger value="archive" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground px-8 py-3 rounded-xl font-black uppercase tracking-widest text-[10px] transition-all duration-300">
             <Archive className="mr-2 h-4 w-4" />
-            Historical
+            Archived
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="live" className="space-y-8 animate-in zoom-in-95 duration-500">
-          <div className="flex items-end justify-between px-2">
-            <div className="space-y-1">
-              <h3 className="text-2xl font-black flex items-center gap-3">
-                {data?.isNextDayPreview ? "Tomorrow's Requirements" : "Today's Active Requirements"}
-                {data?.isNextDayPreview && <Badge className="bg-accent text-accent-foreground font-black text-[10px] px-3 py-1">PREVIEW</Badge>}
-              </h3>
-              <p className="text-sm text-muted-foreground">
-                {data?.isNextDayPreview 
-                  ? "The 1 PM cutoff has passed. Showing tomorrow's operational data." 
-                  : "Displaying all validated requirements for the current active day."}
-              </p>
+        <TabsContent value="live" className="space-y-12 animate-in zoom-in-95 duration-500">
+          {/* Live Now Section */}
+          <div className="space-y-6">
+            <div className="flex items-end justify-between px-2">
+              <div className="space-y-1">
+                <h3 className="text-2xl font-black flex items-center gap-3">
+                  Live Now
+                  <div className="h-2 w-2 rounded-full bg-red-500 animate-ping" />
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  Classes currently in progress (2-hour active window).
+                </p>
+              </div>
             </div>
+            {liveNowRows.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {liveNowRows.map((row, i) => renderCard(row, i, 'live'))}
+              </div>
+            ) : (
+              <Card className="py-12 text-center bg-white/5 border-white/5 rounded-3xl">
+                <p className="text-muted-foreground font-medium">No live classes available at this moment.</p>
+              </Card>
+            )}
           </div>
-          {renderContent(data?.live || [], "The matrix is clear. No active requirements scheduled.", 'live')}
+
+          {/* Upcoming Section */}
+          <div className="space-y-8">
+            <div className="flex items-end justify-between px-2">
+              <div className="space-y-1">
+                <h3 className="text-2xl font-black flex items-center gap-3">
+                  {data?.isNextDayPreview ? "Tomorrow's Requirements" : "Today's Active Requirements"}
+                  {data?.isNextDayPreview && <Badge className="bg-accent text-accent-foreground font-black text-[10px] px-3 py-1">PREVIEW</Badge>}
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  {data?.isNextDayPreview 
+                    ? "The 1 PM cutoff has passed. Showing tomorrow's operational data." 
+                    : "Displaying all validated requirements for the current active day."}
+                </p>
+              </div>
+            </div>
+            {renderContent(data?.live || [], "The matrix is clear. No active requirements scheduled.", 'live')}
+          </div>
         </TabsContent>
 
         <TabsContent value="archive" className="space-y-8 animate-in zoom-in-95 duration-500">
