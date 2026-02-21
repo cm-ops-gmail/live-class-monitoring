@@ -159,11 +159,13 @@ export function DashboardShell() {
         <TabsContent value="live" className="space-y-6">
           <div className="space-y-1">
             <h3 className="text-xl font-semibold flex items-center gap-2">
-              {data?.isNextDayPreview ? "Next Day Schedule" : "Current Session Requirements"}
-              {data?.isNextDayPreview && <Badge variant="secondary" className="bg-accent/10 text-accent border-accent/20">Preview Mode</Badge>}
+              {data?.isNextDayPreview ? "Tomorrow's Requirements" : "Today's Active Requirements"}
+              {data?.isNextDayPreview && <Badge variant="secondary" className="bg-accent/10 text-accent border-accent/20">Next Day Preview</Badge>}
             </h3>
             <p className="text-sm text-muted-foreground">
-              Displaying classes for: {data?.isNextDayPreview ? "Tomorrow" : "Today"}
+              {data?.isNextDayPreview 
+                ? "The 1 PM cutoff has passed. Now showing tomorrow's schedule." 
+                : "Showing scheduled classes for the current day."}
             </p>
           </div>
           {renderCardGrid(data?.live || [], "No requirements found for the active session.")}
@@ -172,11 +174,11 @@ export function DashboardShell() {
         <TabsContent value="archive" className="space-y-6">
           <div className="space-y-1">
             <h3 className="text-xl font-semibold flex items-center gap-2">
-              Previous Requirements Archive
+              Requirements Archive
               <Badge variant="outline" className="text-muted-foreground">Historical View</Badge>
             </h3>
             <p className="text-sm text-muted-foreground">
-              Displaying data for: {data?.archiveDate ? format(new Date(data.archiveDate), 'PPPP') : '---'}
+              Displaying requirements from: {data?.archiveDate ? format(new Date(data.archiveDate), 'PPPP') : '---'}
             </p>
           </div>
           {renderCardGrid(data?.archive || [], "No archived data found.")}
