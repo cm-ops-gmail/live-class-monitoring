@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -8,12 +7,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { getDashboardData } from '@/app/actions/sheets';
 import { SheetRow } from '@/lib/google-sheets';
 import { StatusBadge } from './status-badge';
-import { Loader2, RefreshCw, Archive, PlayCircle, Calendar, ClipboardList } from 'lucide-react';
+import { Loader2, RefreshCw, Archive, PlayCircle, Calendar, ClipboardList, User, BookOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
 
 export function DashboardShell() {
-  const [data, setData] = useState<{ live: SheetRow[]; archive: SheetRow[]; isNextDayPreview: boolean } | null>(null);
+  const [data, setData] = useState<{ live: SheetRow[]; archive: SheetRow[]; isNextDayPreview: boolean; currentTime: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -43,20 +42,20 @@ export function DashboardShell() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight text-primary">Requirement Dashboard</h2>
+          <h2 className="text-3xl font-bold tracking-tight text-primary">Class Schedule Dashboard</h2>
           <p className="text-muted-foreground flex items-center gap-2 mt-1">
             <Calendar className="h-4 w-4" />
-            Last updated: {format(new Date(), 'pp')}
+            Bangladesh Time: {data ? format(new Date(data.currentTime), 'PPpp') : '...'}
           </p>
         </div>
         <Button 
           variant="outline" 
           onClick={loadData} 
           disabled={refreshing}
-          className="hover:bg-primary/5 transition-colors"
+          className="hover:bg-primary/5 transition-colors shadow-sm"
         >
           <RefreshCw className={`mr-2 h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
-          Refresh Data
+          Sync Sheet
         </Button>
       </div>
 
@@ -79,12 +78,12 @@ export function DashboardShell() {
                 <div>
                   <CardTitle className="text-primary flex items-center gap-2">
                     <ClipboardList className="h-5 w-5" />
-                    {data?.isNextDayPreview ? "Tomorrow's Schedule" : "Today's Requirements"}
+                    {data?.isNextDayPreview ? "Next Day's Schedule (Updated)" : "Today's Live Classes"}
                   </CardTitle>
                   <CardDescription>
                     {data?.isNextDayPreview 
-                      ? "Upcoming requirements for the next academic day (Post 1 PM Preview)" 
-                      : "Active requirements for current classes"}
+                      ? "Upcoming classes for the next session (Post 1 PM Update)" 
+                      : "Active scheduled classes for today"}
                   </CardDescription>
                 </div>
               </div>
@@ -92,7 +91,7 @@ export function DashboardShell() {
             <CardContent className="p-0">
               {data?.live.length === 0 ? (
                 <div className="p-12 text-center text-muted-foreground">
-                  No classes scheduled for this period.
+                  No live data available for the current period.
                 </div>
               ) : (
                 <div className="overflow-x-auto">
@@ -100,17 +99,35 @@ export function DashboardShell() {
                     <TableHeader className="bg-muted/30">
                       <TableRow>
                         <TableHead className="font-bold">Time</TableHead>
-                        <TableHead className="font-bold">Class / Subject</TableHead>
-                        <TableHead className="font-bold">Requirements</TableHead>
+                        <TableHead className="font-bold">Course / Subject</TableHead>
+                        <TableHead className="font-bold">Topic</TableHead>
+                        <TableHead className="font-bold">Teachers</TableHead>
                         <TableHead className="text-right font-bold">Status</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {data?.live.map((row, i) => (
                         <TableRow key={i} className="hover:bg-accent/5 group transition-colors">
-                          <TableCell className="font-medium whitespace-nowrap">{row.time}</TableCell>
-                          <TableCell className="font-semibold text-primary">{row.className}</TableCell>
-                          <TableCell className="max-w-md">{row.requirements}</TableCell>
+                          <TableCell className="font-medium whitespace-nowrap">
+                            <div className="flex flex-col">
+                              <span>{row.time}</span>
+                              <span className="text-[10px] text-muted-foreground uppercase">{row.productType}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex flex-col">
+                              <span className="font-semibold text-primary">{row.course}</span>
+                              <span className="text-xs text-muted-foreground">{row.subject}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="max-w-xs truncate">{row.topic}</TableCell>
+                          <TableCell>
+                            <div className="flex flex-col gap-1 text-xs">
+                              {row.teacher1 && <div className="flex items-center gap-1"><User className="h-3 w-3" /> {row.teacher1}</div>}
+                              {row.teacher2 && <div className="text-muted-foreground italic">DS1: {row.teacher2}</div>}
+                              {row.teacher3 && <div className="text-muted-foreground italic">DS2: {row.teacher3}</div>}
+                            </div>
+                          </TableCell>
                           <TableCell className="text-right">
                             <StatusBadge timeStr={row.time} />
                           </TableCell>
@@ -129,9 +146,9 @@ export function DashboardShell() {
             <CardHeader className="border-b bg-muted/20">
               <CardTitle className="text-muted-foreground flex items-center gap-2">
                 <Archive className="h-5 w-5" />
-                Archived Requirements
+                Archive
               </CardTitle>
-              <CardDescription>History of past requirements and completed classes.</CardDescription>
+              <CardDescription>History of previous class requirements.</CardDescription>
             </CardHeader>
             <CardContent className="p-0">
               <div className="overflow-x-auto">
@@ -140,17 +157,26 @@ export function DashboardShell() {
                     <TableRow>
                       <TableHead>Date</TableHead>
                       <TableHead>Time</TableHead>
-                      <TableHead>Class</TableHead>
-                      <TableHead>Requirements</TableHead>
+                      <TableHead>Course/Subject</TableHead>
+                      <TableHead>Topic</TableHead>
+                      <TableHead>Teachers</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {data?.archive.map((row, i) => (
                       <TableRow key={i} className="opacity-70 hover:opacity-100 transition-opacity">
-                        <TableCell className="whitespace-nowrap font-medium">{row.date}</TableCell>
-                        <TableCell className="whitespace-nowrap">{row.time}</TableCell>
-                        <TableCell>{row.className}</TableCell>
-                        <TableCell className="text-muted-foreground">{row.requirements}</TableCell>
+                        <TableCell className="whitespace-nowrap font-medium text-xs">{row.date}</TableCell>
+                        <TableCell className="whitespace-nowrap text-xs">{row.time}</TableCell>
+                        <TableCell>
+                           <div className="flex flex-col">
+                              <span className="text-sm">{row.course}</span>
+                              <span className="text-[10px]">{row.subject}</span>
+                           </div>
+                        </TableCell>
+                        <TableCell className="text-xs max-w-[200px] truncate">{row.topic}</TableCell>
+                        <TableCell className="text-[10px]">
+                           {row.teacher1}{row.teacher2 ? ` / ${row.teacher2}` : ''}
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>

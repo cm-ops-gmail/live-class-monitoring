@@ -1,4 +1,3 @@
-
 import { google } from 'googleapis';
 
 const credentials = {
@@ -14,9 +13,14 @@ const TAB_NAME = 'Upcoming day requirements';
 
 export interface SheetRow {
   date: string;
-  time: string;
-  className: string;
-  requirements: string;
+  time: string; // Scheduled Time
+  productType: string;
+  course: string;
+  subject: string;
+  topic: string;
+  teacher1: string;
+  teacher2: string;
+  teacher3: string;
   [key: string]: string;
 }
 
@@ -34,23 +38,28 @@ export async function fetchSheetData(): Promise<SheetRow[]> {
     });
 
     const rows = response.data.values;
-    if (!rows || rows.length < 2) return [];
+    if (!rows || rows.length < 1) return [];
 
-    const headers = rows[0].map(h => h.toLowerCase().trim());
+    const headers = rows[0].map(h => h.toString().trim());
     
-    // Mapping standard headers loosely based on expected requirements
     const dataRows = rows.slice(1).map(row => {
       const rowData: any = {};
       headers.forEach((header, index) => {
-        let normalizedHeader = header;
-        if (header.includes('date')) normalizedHeader = 'date';
-        if (header.includes('time')) normalizedHeader = 'time';
-        if (header.includes('class') || header.includes('subject')) normalizedHeader = 'className';
-        if (header.includes('req') || header.includes('need')) normalizedHeader = 'requirements';
+        const val = row[index] || '';
+        const h = header.toLowerCase();
         
-        rowData[normalizedHeader] = row[index] || '';
-        // Also keep original header just in case
-        rowData[header.replace(/\s+/g, '_')] = row[index] || '';
+        if (h.includes('date')) rowData.date = val;
+        else if (h.includes('scheduled time') || h === 'time') rowData.time = val;
+        else if (h.includes('product type')) rowData.productType = val;
+        else if (h.includes('course')) rowData.course = val;
+        else if (h.includes('subject')) rowData.subject = val;
+        else if (h.includes('topic')) rowData.topic = val;
+        else if (h === 'teacher 1') rowData.teacher1 = val;
+        else if (h.includes('teacher 2') || h.includes('doubt solver 1')) rowData.teacher2 = val;
+        else if (h.includes('teacher 3') || h.includes('doubt solver 2')) rowData.teacher3 = val;
+        
+        // Keep dynamic keys too
+        rowData[header] = val;
       });
       return rowData as SheetRow;
     });
