@@ -62,13 +62,17 @@ export async function getDashboardData() {
     parsedDate: parseSheetDate(row.date)
   })).filter(item => item.parsedDate !== null) as { row: SheetRow; parsedDate: Date }[];
 
-  // 1. Live Data: Classes on the liveTargetDate
+  // 1. Operational "Live" Data: Classes on the liveTargetDate (Today or Tomorrow)
   const liveRows = rowsWithDates
     .filter(item => isSameDay(item.parsedDate, liveTargetDate))
     .map(item => item.row);
 
-  // 2. Archive Data: Classes from the most recent day BEFORE the liveTargetDate
-  // Get all unique dates strictly before the liveTargetDate
+  // 2. Actual "Today" Data: Classes strictly on the actual current day (for Live Now section)
+  const todayRows = rowsWithDates
+    .filter(item => isSameDay(item.parsedDate, bdTodayStart))
+    .map(item => item.row);
+
+  // 3. Archive Data: Classes from the most recent day BEFORE the liveTargetDate
   const pastDates = Array.from(new Set(
     rowsWithDates
       .filter(item => isBefore(item.parsedDate, liveTargetDate))
@@ -88,6 +92,7 @@ export async function getDashboardData() {
 
   return {
     live: liveRows,
+    today: todayRows,
     archive: archiveRows,
     isNextDayPreview: isAfterCutoff,
     currentTime: nowBD.toISOString(),
