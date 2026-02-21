@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
@@ -261,10 +262,25 @@ export function DashboardShell() {
               <TableBody>
                 {rows.map((row, i) => {
                   const status = getRowStatus(row);
-                  const StatusIcon = ({ ready }: { ready: boolean }) => (
+                  
+                  const StatusIcon = ({ ready, label, value }: { ready: boolean, label: string, value: string }) => (
                     ready 
                       ? <CheckCircle2 className="h-5 w-5 text-emerald-500 mx-auto" /> 
-                      : <XCircle className="h-5 w-5 text-red-500 mx-auto" />
+                      : (
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <button className="cursor-help outline-none group/status">
+                              <XCircle className="h-5 w-5 text-red-500 mx-auto hover:scale-125 transition-transform" />
+                            </button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-64 bg-black/95 border-red-500/20 p-4 shadow-2xl backdrop-blur-md">
+                            <div className="space-y-2">
+                              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-red-500/80">{label}</p>
+                              <p className="text-xs font-bold text-white leading-relaxed">{value || 'Empty / Not Updated'}</p>
+                            </div>
+                          </PopoverContent>
+                        </Popover>
+                      )
                   );
 
                   return (
@@ -276,10 +292,18 @@ export function DashboardShell() {
                       <TableCell className="font-bold text-xs text-muted-foreground py-4 whitespace-nowrap">{row.date}</TableCell>
                       <TableCell className="font-black text-white text-sm">{row.topic || 'N/A'}</TableCell>
                       <TableCell className="font-bold text-xs text-primary/80 whitespace-nowrap">{row.time || 'TBA'}</TableCell>
-                      <TableCell className="text-center"><StatusIcon ready={status.s1} /></TableCell>
-                      <TableCell className="text-center"><StatusIcon ready={status.s2} /></TableCell>
-                      <TableCell className="text-center"><StatusIcon ready={status.s3} /></TableCell>
-                      <TableCell className="text-center"><StatusIcon ready={status.s4} /></TableCell>
+                      <TableCell className="text-center">
+                        <StatusIcon ready={status.s1} label="Teacher Alignment" value={row.teacherAlignment} />
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <StatusIcon ready={status.s2} label="Slide Status" value={row.slide} />
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <StatusIcon ready={status.s3} label="Title & Caption" value={row.titleCaption} />
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <StatusIcon ready={status.s4} label="Platform & Cross Post" value={row.platformCrosspost} />
+                      </TableCell>
                     </TableRow>
                   );
                 })}

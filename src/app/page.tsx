@@ -13,9 +13,8 @@ export default function Home() {
               <div className="relative h-10 w-32">
                 {/* 
                   INSTRUCTIONS: 
-                  1. Upload your logo to the 'public' folder.
-                  2. Name it exactly 'logo.png'.
-                  3. The component below will automatically display it.
+                  1. The 'public' folder is at the root of your project.
+                  2. Upload your logo to that folder and name it 'logo.png'.
                 */}
                 <Image 
                   src="/logo.png" 
@@ -26,13 +25,7 @@ export default function Home() {
                 />
               </div>
             </div>
-            <div className="hidden md:block">
-              <div className="flex items-baseline space-x-4">
-                <span className="text-xs font-black uppercase tracking-[0.3em] text-primary/60">
-                  Content Operations Monitor
-                </span>
-              </div>
-            </div>
+            {/* Secondary monitor text removed as requested */}
           </div>
         </div>
       </nav>
@@ -46,7 +39,7 @@ export default function Home() {
       <footer className="mt-auto border-t border-white/10 py-8 bg-black">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
-            &copy; 2025 10 MS Content Operations. All rights reserved.
+            &copy; 2026 10 MS Content Operations. All rights reserved.
           </p>
         </div>
       </footer>
