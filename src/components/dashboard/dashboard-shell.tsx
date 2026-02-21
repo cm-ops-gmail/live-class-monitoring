@@ -269,7 +269,7 @@ export function DashboardShell() {
             </Badge>
             <Badge variant="secondary" className="bg-white/5 hover:bg-white/10 text-muted-foreground border-white/10 px-4 py-1.5 rounded-full font-bold">
               <Clock className="h-4 w-4 mr-2 text-primary" />
-              BD Time: {liveTime ? format(liveTime, 'HH:mm:ss') : '...'}
+              BD Time: {liveTime ? format(liveTime, 'h:mm:ss a') : '...'}
             </Badge>
           </div>
         </div>
