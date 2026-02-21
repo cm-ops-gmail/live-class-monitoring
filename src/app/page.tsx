@@ -4,7 +4,7 @@ import Image from 'next/image';
 
 export default function Home() {
   return (
-    <main className="min-h-screen bg-black">
+    <main className="min-h-screen bg-black flex flex-col">
       {/* Top Navbar */}
       <nav className="bg-black border-b border-white/10 sticky top-0 z-50 backdrop-blur-md">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -25,13 +25,12 @@ export default function Home() {
                 />
               </div>
             </div>
-            {/* Secondary monitor text removed as requested */}
           </div>
         </div>
       </nav>
 
       {/* Main Content Area */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1">
         <DashboardShell />
       </div>
 

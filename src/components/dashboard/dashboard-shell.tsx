@@ -7,13 +7,46 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { getDashboardData } from '@/app/actions/sheets';
 import { SheetRow } from '@/lib/google-sheets';
-import { Loader2, RefreshCw, Archive, PlayCircle, Calendar, User, BookOpen, Clock, Sparkles, CheckCircle2, XCircle, AlertCircle, Info, ExternalLink } from 'lucide-react';
+import { Loader2, RefreshCw, Archive, PlayCircle, Calendar, User, BookOpen, Clock, Sparkles, CheckCircle2, XCircle, AlertCircle, Info, ExternalLink, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { format, addHours, isWithinInterval, parse } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ScrollArea } from '@/components/ui/scroll-area';
+
+/**
+ * Extracted StatusIcon to prevent recreation on every render
+ * which was causing popovers to "vanish" due to remounting.
+ */
+function StatusIcon({ ready, label, value }: { ready: boolean, label: string, value: string }) {
+  const [open, setOpen] = useState(false);
+
+  if (ready) {
+    return <CheckCircle2 className="h-5 w-5 text-emerald-500 mx-auto" />;
+  }
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button className="cursor-help outline-none group/status">
+          <XCircle className="h-5 w-5 text-red-500 mx-auto hover:scale-125 transition-transform" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-64 bg-black/95 border-red-500/20 p-4 shadow-2xl backdrop-blur-md">
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-red-500/80">{label}</p>
+            <button onClick={() => setOpen(false)} className="hover:text-white text-muted-foreground transition-colors">
+              <X className="h-3 w-3" />
+            </button>
+          </div>
+          <p className="text-xs font-bold text-white leading-relaxed">{value || 'Empty / Not Updated'}</p>
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
 
 export function DashboardShell() {
   const [data, setData] = useState<{ 
@@ -86,7 +119,6 @@ export function DashboardShell() {
     }
   }, []);
 
-  // Logic for "Live Now" (2 hour window)
   const liveNowRows = useMemo(() => {
     if (!data?.live || !liveTime) return [];
     
@@ -263,26 +295,6 @@ export function DashboardShell() {
                 {rows.map((row, i) => {
                   const status = getRowStatus(row);
                   
-                  const StatusIcon = ({ ready, label, value }: { ready: boolean, label: string, value: string }) => (
-                    ready 
-                      ? <CheckCircle2 className="h-5 w-5 text-emerald-500 mx-auto" /> 
-                      : (
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <button className="cursor-help outline-none group/status">
-                              <XCircle className="h-5 w-5 text-red-500 mx-auto hover:scale-125 transition-transform" />
-                            </button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-64 bg-black/95 border-red-500/20 p-4 shadow-2xl backdrop-blur-md">
-                            <div className="space-y-2">
-                              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-red-500/80">{label}</p>
-                              <p className="text-xs font-bold text-white leading-relaxed">{value || 'Empty / Not Updated'}</p>
-                            </div>
-                          </PopoverContent>
-                        </Popover>
-                      )
-                  );
-
                   return (
                     <TableRow 
                       key={i} 
