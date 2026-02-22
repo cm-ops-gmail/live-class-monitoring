@@ -3,7 +3,7 @@ import type {Metadata} from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'SheetSync Dashboard | Google Sheets Live',
+  title: 'Ops Live Class Monitoring',
   description: 'Real-time requisition dashboard synced with Google Sheets',
 };
 
