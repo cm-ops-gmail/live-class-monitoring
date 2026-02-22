@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { getDashboardData } from '@/app/actions/sheets';
 import { SheetRow } from '@/lib/google-sheets';
-import { Loader2, RefreshCw, Archive, PlayCircle, Calendar, User, BookOpen, Clock, Sparkles, CheckCircle2, XCircle, AlertCircle, Info, ExternalLink, X } from 'lucide-react';
+import { Loader2, RefreshCw, Archive, PlayCircle, Calendar, User, Clock, Sparkles, CheckCircle2, XCircle, AlertCircle, Info, ExternalLink, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { format, addHours, isWithinInterval, parse } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
@@ -124,9 +124,9 @@ export function DashboardShell() {
   const liveNowRows = useMemo(() => {
     if (!data?.today || !liveTime) return [];
     
-    return data.today.filter(row => {
+    return data.today.map((row, index) => ({ row, index })).filter(item => {
       try {
-        const timePart = row.time.split('-')[0].trim();
+        const timePart = item.row.time.split('-')[0].trim();
         const startTime = parse(timePart, 'h:mm a', liveTime);
         const endTime = addHours(startTime, 2);
         return isWithinInterval(liveTime, { start: startTime, end: endTime });
@@ -136,15 +136,32 @@ export function DashboardShell() {
     });
   }, [data?.today, liveTime]);
 
-  const renderCard = (row: SheetRow, i: number, tabType: 'live' | 'archive', isLiveNow: boolean = false) => {
+  /**
+   * Split data.live into Ready vs Attention
+   */
+  const { readyRows, attentionRows } = useMemo(() => {
+    const ready: { row: SheetRow, index: number }[] = [];
+    const attention: { row: SheetRow, index: number }[] = [];
+    
+    (data?.live || []).forEach((row, index) => {
+      if (getRowStatus(row).allReady) {
+        ready.push({ row, index });
+      } else {
+        attention.push({ row, index });
+      }
+    });
+    
+    return { readyRows: ready, attentionRows: attention };
+  }, [data?.live]);
+
+  const renderCard = (row: SheetRow, absoluteIndex: number, tabType: 'live' | 'archive', isLiveNow: boolean = false) => {
     const { allReady } = getRowStatus(row);
     return (
       <Card 
-        key={i} 
+        key={`${tabType}-${absoluteIndex}`} 
         className={cn(
           "group card-hover-effect relative border-white/5 bg-gradient-to-br from-secondary/40 to-black overflow-hidden animate-in fade-in slide-in-from-bottom-8 duration-700",
         )}
-        style={{ "--delay": `${i * 100}ms` } as any}
       >
         <div className="absolute -right-20 -top-20 h-40 w-40 bg-primary/5 blur-[80px] group-hover:bg-primary/10 transition-all duration-700" />
         
@@ -161,7 +178,7 @@ export function DashboardShell() {
 
             <div className="flex flex-col items-end gap-2">
               <button 
-                onClick={() => scrollToRow(tabType, i)}
+                onClick={() => scrollToRow(tabType, absoluteIndex)}
                 className="transition-transform active:scale-95 cursor-pointer"
               >
                 {isLiveNow ? (
@@ -250,80 +267,58 @@ export function DashboardShell() {
     );
   };
 
-  const renderContent = (rows: SheetRow[], emptyMessage: string, tabType: 'live' | 'archive') => {
-    if (rows.length === 0) {
-      return (
-        <Card className="border-dashed py-24 text-center bg-secondary/10 border-white/10">
-          <div className="max-w-[300px] mx-auto space-y-4">
-            <div className="h-16 w-16 rounded-2xl bg-secondary mx-auto flex items-center justify-center">
-              <BookOpen className="h-8 w-8 text-muted-foreground" />
-            </div>
-            <div className="space-y-2">
-              <h4 className="font-bold text-xl">System Standby</h4>
-              <p className="text-sm text-muted-foreground leading-relaxed">{emptyMessage}</p>
-            </div>
-          </div>
-        </Card>
-      );
-    }
-
+  const renderTable = (rows: SheetRow[], tabType: 'live' | 'archive') => {
+    if (rows.length === 0) return null;
     return (
-      <div className="space-y-16">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {rows.map((row, i) => renderCard(row, i, tabType))}
+      <div className="space-y-6">
+        <div className="flex items-center gap-4 px-2">
+          <div className="h-px flex-1 bg-white/5" />
+          <h3 className="text-sm font-black uppercase tracking-[0.4em] text-muted-foreground">Detailed Class Data</h3>
+          <div className="h-px flex-1 bg-white/5" />
         </div>
 
-        <div className="space-y-6">
-          <div className="flex items-center gap-4 px-2">
-            <div className="h-px flex-1 bg-white/5" />
-            <h3 className="text-sm font-black uppercase tracking-[0.4em] text-muted-foreground">Detailed Class Data</h3>
-            <div className="h-px flex-1 bg-white/5" />
-          </div>
-
-          <div className="rounded-[2rem] border border-white/5 bg-secondary/20 overflow-hidden backdrop-blur-xl">
-            <Table>
-              <TableHeader className="bg-white/5">
-                <TableRow className="border-white/5 hover:bg-transparent">
-                  <TableHead className="text-white font-black uppercase tracking-widest text-[10px] py-6">Date</TableHead>
-                  <TableHead className="text-white font-black uppercase tracking-widest text-[10px]">Topic</TableHead>
-                  <TableHead className="text-white font-black uppercase tracking-widest text-[10px]">Time</TableHead>
-                  <TableHead className="text-white font-black uppercase tracking-widest text-[10px] text-center">Teacher Alignment</TableHead>
-                  <TableHead className="text-white font-black uppercase tracking-widest text-[10px] text-center">Slide</TableHead>
-                  <TableHead className="text-white font-black uppercase tracking-widest text-[10px] text-center">Title &amp; Caption</TableHead>
-                  <TableHead className="text-white font-black uppercase tracking-widest text-[10px] text-center">Platform &amp; Cross Post</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {rows.map((row, i) => {
-                  const status = getRowStatus(row);
-                  
-                  return (
-                    <TableRow 
-                      key={i} 
-                      id={`${tabType}-row-${i}`}
-                      className="border-white/5 hover:bg-white/5 transition-colors duration-500 scroll-mt-24"
-                    >
-                      <TableCell className="font-bold text-xs text-muted-foreground py-4 whitespace-nowrap">{row.date}</TableCell>
-                      <TableCell className="font-black text-white text-sm">{row.topic || 'N/A'}</TableCell>
-                      <TableCell className="font-bold text-xs text-primary/80 whitespace-nowrap">{row.time || 'TBA'}</TableCell>
-                      <TableCell className="text-center">
-                        <StatusIcon ready={status.s1} label="Teacher Alignment" value={row.teacherAlignment} />
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <StatusIcon ready={status.s2} label="Slide Status" value={row.slide} />
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <StatusIcon ready={status.s3} label="Title & Caption" value={row.titleCaption} />
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <StatusIcon ready={status.s4} label="Platform & Cross Post" value={row.platformCrosspost} />
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </div>
+        <div className="rounded-[2rem] border border-white/5 bg-secondary/20 overflow-hidden backdrop-blur-xl">
+          <Table>
+            <TableHeader className="bg-white/5">
+              <TableRow className="border-white/5 hover:bg-transparent">
+                <TableHead className="text-white font-black uppercase tracking-widest text-[10px] py-6">Date</TableHead>
+                <TableHead className="text-white font-black uppercase tracking-widest text-[10px]">Topic</TableHead>
+                <TableHead className="text-white font-black uppercase tracking-widest text-[10px]">Time</TableHead>
+                <TableHead className="text-white font-black uppercase tracking-widest text-[10px] text-center">Teacher Alignment</TableHead>
+                <TableHead className="text-white font-black uppercase tracking-widest text-[10px] text-center">Slide</TableHead>
+                <TableHead className="text-white font-black uppercase tracking-widest text-[10px] text-center">Title &amp; Caption</TableHead>
+                <TableHead className="text-white font-black uppercase tracking-widest text-[10px] text-center">Platform &amp; Cross Post</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {rows.map((row, i) => {
+                const status = getRowStatus(row);
+                return (
+                  <TableRow 
+                    key={i} 
+                    id={`${tabType}-row-${i}`}
+                    className="border-white/5 hover:bg-white/5 transition-colors duration-500 scroll-mt-24"
+                  >
+                    <TableCell className="font-bold text-xs text-muted-foreground py-4 whitespace-nowrap">{row.date}</TableCell>
+                    <TableCell className="font-black text-white text-sm">{row.topic || 'N/A'}</TableCell>
+                    <TableCell className="font-bold text-xs text-primary/80 whitespace-nowrap">{row.time || 'TBA'}</TableCell>
+                    <TableCell className="text-center">
+                      <StatusIcon ready={status.s1} label="Teacher Alignment" value={row.teacherAlignment} />
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <StatusIcon ready={status.s2} label="Slide Status" value={row.slide} />
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <StatusIcon ready={status.s3} label="Title &amp; Caption" value={row.titleCaption} />
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <StatusIcon ready={status.s4} label="Platform &amp; Cross Post" value={row.platformCrosspost} />
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
         </div>
       </div>
     );
@@ -396,8 +391,8 @@ export function DashboardShell() {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="live" className="space-y-12 animate-in zoom-in-95 duration-500">
-          {/* Live Now Section */}
+        <TabsContent value="live" className="space-y-16 animate-in zoom-in-95 duration-500">
+          {/* Section 1: Live Now */}
           <div className="space-y-6">
             <div className="flex items-end justify-between px-2">
               <div className="space-y-1">
@@ -412,7 +407,7 @@ export function DashboardShell() {
             </div>
             {liveNowRows.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {liveNowRows.map((row, i) => renderCard(row, i, 'live', true))}
+                {liveNowRows.map((item) => renderCard(item.row, item.index, 'live', true))}
               </div>
             ) : (
               <Card className="py-12 text-center bg-white/5 border-white/5 rounded-3xl">
@@ -421,23 +416,56 @@ export function DashboardShell() {
             )}
           </div>
 
-          {/* Upcoming Section */}
+          {/* Section 2: Ready to go live (WAS Section 3) */}
           <div className="space-y-8">
             <div className="flex items-end justify-between px-2">
               <div className="space-y-1">
-                <h3 className="text-2xl font-black flex items-center gap-3">
-                  {data?.isNextDayPreview ? "Tomorrow's Requirements" : "Today's Active Requirements"}
-                  {data?.isNextDayPreview && <Badge className="bg-accent text-accent-foreground font-black text-[10px] px-3 py-1">PREVIEW</Badge>}
+                <h3 className="text-2xl font-black flex items-center gap-3 text-emerald-500">
+                  Ready to go live
+                  <Badge className="bg-emerald-500 text-white font-black text-[10px] px-3 py-1">VALIDATED</Badge>
                 </h3>
                 <p className="text-sm text-muted-foreground">
-                  {data?.isNextDayPreview 
-                    ? "The 1 PM cutoff has passed. Showing tomorrow's operational data." 
-                    : "Displaying all validated requirements for the current active day."}
+                  Classes that have met all operational requirements.
                 </p>
               </div>
             </div>
-            {renderContent(data?.live || [], "The matrix is clear. No active requirements scheduled.", 'live')}
+            {readyRows.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {readyRows.map((item) => renderCard(item.row, item.index, 'live', false))}
+              </div>
+            ) : (
+              <Card className="py-12 text-center bg-white/5 border-white/5 rounded-3xl">
+                <p className="text-muted-foreground font-medium">No fully validated classes scheduled yet.</p>
+              </Card>
+            )}
           </div>
+
+          {/* Section 3: Immediate Action Required (WAS Section 2) */}
+          <div className="space-y-8">
+            <div className="flex items-end justify-between px-2">
+              <div className="space-y-1">
+                <h3 className="text-2xl font-black flex items-center gap-3 text-red-500">
+                  Immediate Action Required
+                  <Badge className="bg-red-500 text-white font-black text-[10px] px-3 py-1">CRITICAL</Badge>
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  The following upcoming classes have missing requirements.
+                </p>
+              </div>
+            </div>
+            {attentionRows.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {attentionRows.map((item) => renderCard(item.row, item.index, 'live', false))}
+              </div>
+            ) : (
+              <Card className="py-12 text-center bg-emerald-500/5 border-emerald-500/10 rounded-3xl border-dashed">
+                <p className="text-emerald-500/60 font-medium">Zero critical attention items at this time. All clear.</p>
+              </Card>
+            )}
+          </div>
+
+          {/* Section 4: Detailed Table */}
+          {renderTable(data?.live || [], 'live')}
         </TabsContent>
 
         <TabsContent value="archive" className="space-y-8 animate-in zoom-in-95 duration-500">
@@ -452,7 +480,10 @@ export function DashboardShell() {
               </p>
             </div>
           </div>
-          {renderContent(data?.archive || [], "No historical data detected.", 'archive')}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {(data?.archive || []).map((row, i) => renderCard(row, i, 'archive', false))}
+          </div>
+          {renderTable(data?.archive || [], 'archive')}
         </TabsContent>
       </Tabs>
     </div>
