@@ -182,7 +182,7 @@ export function DashboardShell() {
                 className="transition-transform active:scale-95 cursor-pointer"
               >
                 {isLiveNow ? (
-                  <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 font-black text-xs uppercase tracking-tight py-2 px-4 animate-live-glow flex items-center gap-2 hover:bg-emerald-500/30">
+                  <Badge className="bg-orange-500/20 text-orange-400 border-orange-500/30 font-black text-xs uppercase tracking-tight py-2 px-4 animate-live-glow flex items-center gap-2 hover:bg-orange-500/30">
                     <PlayCircle className="h-4 w-4" />
                     Live Now
                   </Badge>
@@ -398,7 +398,7 @@ export function DashboardShell() {
               <div className="space-y-1">
                 <h3 className="text-2xl font-black flex items-center gap-3">
                   Live Now
-                  <div className="h-3 w-3 rounded-full bg-emerald-500 animate-ping" />
+                  <div className="h-3 w-3 rounded-full bg-orange-500 animate-ping" />
                 </h3>
                 <p className="text-sm text-muted-foreground">
                   Classes currently in progress on the actual current calendar day.
